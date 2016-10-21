@@ -44,6 +44,9 @@ var Player = function() {
     this.direction = LEFT;
     
     this.cooldownTimer;
+    
+    this.win;
+    this.lose;
 };
 
 
@@ -208,4 +211,10 @@ Player.prototype.update = function(deltaTime){
             this.velocity.x = 0;
         }
     }
+    
+
+    if(cellAtTileCoord(LAYER_OBJECT_TRIGGERS, tx, ty) == true){this.win = true;}
+    
+    if(cellAtTileCoord(LAYER_OBJECT_GAMEOVER, tx, ty) == true){this.lose = true;}
+    
 }

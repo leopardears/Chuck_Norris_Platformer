@@ -16,7 +16,7 @@ var TILESET_SPACING = 2;
 var TILESET_COUNT_X = 14;
 var TILESET_COUNT_Y = 14;
 
-var worldOffsetX =0;
+var worldOffsetX = 0;
 
 
 //layers to level-------------------------------- 
@@ -26,7 +26,10 @@ var LAYER_PLATFORMS = 1;
 var LAYER_LADDERS = 2;
 
 var LAYER_OBJECT_ENEMIES = 3;
-var LAYER_OBJECT_TRIGGERS = 4;
+var LAYER_OBJECT_GAMEOVER = 4;
+var LAYER_OBJECT_TRIGGERS = 5;
+
+
 
 //collision--------------------------------------
 var METER = TILE;
@@ -56,25 +59,24 @@ var score = 0;
 //lives------------------------------------------
 var lives = 3;
 
+
 //sounds-----------------------------------------
 var musicBackground;
 var sfxFire;
 
 
-//enemy------------------------------------------
-var ENEMY_MAXDX = METER * 5; 
-var ENEMY_ACCEL = ENEMY_MAXDX * 2;
+//states-----------------------------------------
 
-var enemies = [];
+var STATE_PLAY = 0;
+var STATE_GAMEOVER = 2;
+var STATE_WIN = 1;
 
-var LAYER_OBJECT_ENEMIES = 3;
-var LAYER_OBJECT_TRIGGERS = 4;
-
+var gameState = STATE_PLAY;
 
 //new objects||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 var player = new Player();
 var keyboard = new Keyboard();
-var enemy = new Enemy();
+
 
 //functions||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 //deltaTime==========================================================
@@ -92,6 +94,7 @@ function getDeltaTime(){
 }
 
     var dt = getDeltaTime;
+
 
 //fps================================================================
 function FPS(deltaTime){
@@ -240,22 +243,7 @@ function initialize() {
      }
     
     
-//add enemies------------------------------------
-    level1.layers[LAYER_OBJECT_ENEMIES] = [];
-    idx = 0;
-    for(var y = 0; y < level1.layers[LAYER_OBJECT_ENEMIES].height; y++) {        
-        for(var x = 0; x < level1.layers[LAYER_OBJECT_ENEMIES].width; x++) {
-            if(level1.layers[114].data[idx] != 0) {
-                var px = tileToPixel(x);
-                var py = tileToPixel(y);
-                var e = new Enemy(px, py);
-                enemies.push(e);
-            }
-            idx++;
-        }
-    }  
-    
-    
+
 //trigger----------------------------------------
     cells[LAYER_OBJECT_TRIGGERS] = [];    
     idx = 0;    
@@ -274,8 +262,26 @@ function initialize() {
             }
         idx++;
         }
-    }    
+    }   
     
+        cells[LAYER_OBJECT_GAMEOVER] = [];    
+    idx = 0;    
+    for(var y = 0; y < level1.layers[LAYER_OBJECT_GAMEOVER].height; y++) {        
+        cells[LAYER_OBJECT_GAMEOVER][y] = [];
+        for(var x = 0; x < level1.layers[LAYER_OBJECT_GAMEOVER].width; x++) {
+            if(level1.layers[LAYER_OBJECT_GAMEOVER].data[idx] != 0) {
+                cells[LAYER_OBJECT_GAMEOVER][y][x] = 1;  
+                cells[LAYER_OBJECT_GAMEOVER][y-1][x] = 1;    
+                cells[LAYER_OBJECT_GAMEOVER][y-1][x+1] = 1;  
+                cells[LAYER_OBJECT_GAMEOVER][y][x+1] = 1;    
+            }               
+            else if(cells[LAYER_OBJECT_GAMEOVER][y][x] != 1) {
+                // if we haven't set this cell's value, then set it to 0 now
+                cells[LAYER_OBJECT_GAMEOVER][y][x] = 0;                     
+            }
+        idx++;
+        }
+    } 
     
 //sound------------------------------------------
     musicBackground = new Howl( {
@@ -297,21 +303,11 @@ function initialize() {
     } );
     
 }
+//states=============================================================
 
+function runGame(deltaTime){
 
-//player=============================================================
-
-//run function|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-function run(){
-//deltatime-------------------------------------
-	var deltaTime = getDeltaTime();
     
-//draw & update======================================================
-//background--------------------------------
-	context.fillStyle = "#ccc";		
-	context.fillRect(0, 0, canvas.width, canvas.height);
-
- 
 //player 1 of 2----------------------------------
     player.update(deltaTime);
     
@@ -324,15 +320,13 @@ function run(){
     Score();
     
 
-//life------------------------------------------
+//life-------------------------------------------
     Life();
     
     
 //player2 of 2-----------------------------------
     player.draw(worldOffsetX);
 
-    
-//draw enemy-------------------------------------
     
 //draw fps---------------------------------------
     FPS(deltaTime);
@@ -342,7 +336,47 @@ function run(){
 	context.fillText("FPS: " + fps, 2, 80, 100);
 
 
-//
+    
+    }
+
+function gameOver(deltaTime){
+    context.fillStyle = "#f00";
+	context.font = "14px Arial";
+	context.fillText("GameOver", SCREEN_WIDTH/2 - 20, SCREEN_HEIGHT/2, 70);
+}
+
+function winGame(deltaTime){
+    context.fillStyle = "#f00";
+	context.font="14px Arial";
+	context.fillText("You Win!", SCREEN_WIDTH/2 - 20, SCREEN_HEIGHT/2, 70);
+}
+
+//player=============================================================
+
+//run function|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+function run(){
+//deltatime--------------------------------------
+	var deltaTime = getDeltaTime();
+    
+//background-------------------------------------
+	context.fillStyle = "#ccc";		
+	context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    switch(gameState){
+        case STATE_PLAY:
+            runGame(deltaTime);
+            break;
+        case STATE_GAMEOVER:
+            gameOver(deltaTime);
+            break;
+        case STATE_WIN:
+            winGame(deltaTime);
+            break;
+
+    }
+    
+    if (player.lose == true){gameState = STATE_GAMEOVER;}
+    if (player.win == true){gameState = STATE_WIN;}
 }
 
 initialize();
